@@ -7,7 +7,7 @@ class App extends Component {
    return (
       <div className='App'>
         <div className='App-header'>
-          <h2>d3ia dashboard</h2>
+          <h2>D3 in React</h2>
         </div>
         <div>
           <BarChart data={

@@ -1,41 +1,10 @@
 import React, { Component } from 'react'
 import './App.css'
 import { scaleLinear } from 'd3-scale'
-import { max, range } from 'd3-array'
+import { min, max } from 'd3-array'
 import { select } from 'd3-selection'
 import { line } from 'd3-shape'
 import { axisBottom, axisLeft } from 'd3-axis'
-import parse from 'csv-parse'
-
-
-const getCSVData = (fileName) => {
-    // populate wordList from adjacent file
-    let data = '';
-    const xhr = new XMLHttpRequest();
-    xhr.onload = () => {
-        if (xhr.readyState === xhr.DONE) {
-            if (xhr.status === 200) {
-                data = xhr.responseText;
-            }
-        }
-    };
-    xhr.open('GET', fileName, false);
-    xhr.send(null);
-
-    const stream = parse(data, {
-        delimiter: ','
-    });
-    const output = [];
-
-    stream.on('readable', () => {
-        let record;
-        while (record = stream.read()) {
-            output.push([parseFloat(record[0]), parseFloat(record[1])])
-        }
-    });
-
-    return output
-};
 
 const getJSONData = (fileName) => {
     // populate wordList from adjacent file
@@ -58,7 +27,7 @@ const getJSONData = (fileName) => {
 class BarChart extends Component {
    constructor(props){
        super(props);
-       this.createBarChart = this.createBarChart.bind(this)
+       this.createBarChart = this.createBarChart.bind(this);
        this.width = 1000;
        this.height = 500;
    }
@@ -73,71 +42,58 @@ class BarChart extends Component {
 
    createBarChart() {
       const node = this.node;
-      // const data =getCSVData('RHEAtest.csv');
-      // const data = [[1825, 31753], [1825, 41753], [1825, 51753], [6825, 61753]];
-      //  console.log(getJSONData('RHEAtest.json'));
-       const jsonData = JSON.parse(getJSONData('RHEAtest.json'));
-       console.log(jsonData);
-      const yDataOnly = [1, 2, 3, 4, 5, 4, 3, 4, 5, 5, 6, 4, 3, 5, 3, 6, 6, 7, 8, 7, 8, 9, 10];
-      const data = jsonData;
-      // console.log(data);
-      // const yMax = 70000;
-      //  const yMax = max(yDataOnly);
-       const yMax = 70000;
-       const yMin = 60000;
-      // const xMax = 6825;
-      //  const xMax = yDataOnly.length;
-       const xMin = 1825;
-       const xMax = 3000;
+       const data = JSON.parse(getJSONData('RHEAtest.json'));
+       const dataQ1Q3 = JSON.parse(getJSONData('RHEAQ1Q3test.json'));
+
+       const xMin = min(dataQ1Q3, (d) => { return d.x });
+       const xMax = max(dataQ1Q3, (d) => { return d.x });
+       const yMin = min(dataQ1Q3, (d) => { return d.y });
+       const yMax = max(dataQ1Q3, (d) => { return d.y });
+
       const yScale = scaleLinear()
          .domain([yMin, yMax])
-         .range([0, this.height]);
+         .range([this.height, 0]);
       const xScale = scaleLinear()
          .domain([xMin, xMax])
          .range([0, this.width]);
-      const xAxis = axisBottom(1825,5000).ticks(100);
-
-      var lineJSON = line()
-            .x(function(d) { console.log(d['x'])
-                return xScale(d['x'])})
+      let lineJSON = line()
+            .x(function(d) { return xScale(d['x'])})
             .y(function(d) { return yScale(d['y'])});
-
-
-    var lineGenerator = line()
-        .y(function(d) { return yScale(d); })
-        .x(function(d, i) { return xScale(i); });
-    // var pathString = lineGenerator(data);
-        var pathString = lineJSON(data);
+      let pathString = lineJSON(data);
+      let pathQ1Q3 = lineJSON(dataQ1Q3);
+      const xAxis = axisBottom(xScale);
+      const yAxis = axisLeft(yScale);
 
 
     select(node)
-        .selectAll('path')
-        .data([1])
-        .enter()
-        .append('path');
+        .append('path')
+        .attr('d', pathQ1Q3)
+        .attr("transform", "translate(" + 50 + ",0)")
+        .style("fill", "gray")
+        .style("opacity", "0.2")
+        .style("stroke", "gray");
 
     select(node)
-        .selectAll('path')
-        .data([1])
-        .exit()
-        .remove();
-
-    select(node)
-        .selectAll('path')
+        .append('path')
         .attr('d', pathString)
+        .attr("transform", "translate(" + 50 + ",0)")
         .style("fill", "none")
-        .style("stroke", "steelblue")
+        .style("stroke", "steelblue");
 
-    // select(node)
-    //     .append('g')
-    //     .attr("class", "x axis")
-    //     .attr("transform", "translate(0," + 10 + ")")
-    //     .call(xAxis)
+    select(node)
+        .append('g')
+        .attr("transform", "translate(50," + this.height + ")")
+        .call(xAxis);
+
+   select(node)
+        .append('g')
+        .attr("transform", "translate(" + 50 + ",0)")
+        .call(yAxis)
    }
 
 render() {
       return <svg ref={node => this.node = node}
-      width={this.width} height={this.height}>
+      width={this.width + 50} height={this.height + 30}>
       </svg>
    }
 }
